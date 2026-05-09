@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, ArrowRight, Lock, User, Globe } from 'lucide-react';
+import { Shield, ArrowRight, Lock, User, Globe, Loader2 } from 'lucide-react'; // Añadí Loader2
 import { motion } from 'motion/react';
 
 export const LoginScreen = ({ onLogin }) => {
@@ -8,6 +8,7 @@ export const LoginScreen = ({ onLogin }) => {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // 🚩 Apuntamos al backend de Node.js
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
 
   const handleSubmit = async (e) => {
@@ -16,35 +17,36 @@ export const LoginScreen = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-      // 🚩 ASEGÚRATE de que esta ruta sea la correcta en tu Node.js
+      // 1. GOLPEAMOS EL ENDPOINT REAL DE NODE.JS
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        // Verifica si tu backend espera 'email' o 'username'
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }) 
       });
 
       const data = await response.json();
 
       if (response.ok && data.token) {
-        // INYECCIÓN DE MEMORIA: Guardamos la credencial en el navegador
+        // 2. EL MOMENTO CLAVE: Guardamos el pase VIP real
         localStorage.setItem('token', data.token);
-        // Opcional: guardar datos del usuario si tu API los devuelve
-        if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
-
-        onLogin(); // Le avisamos al Orquestador (App.jsx) que abra las puertas
+        if (data.user) localStorage.setItem('user', JSON.stringify(data.user)); 
+        
+        // 3. Abrimos las puertas del frontend
+        onLogin(); 
       } else {
+        // Credenciales rechazadas por la base de datos
         setErrorMsg(data.error || "Credenciales inválidas. Acceso denegado.");
       }
     } catch (error) {
       console.error("Fallo de red en login:", error);
-      setErrorMsg("Fallo crítico de red. El servidor de autenticación no responde.");
+      setErrorMsg("Fallo crítico de red. Node.js no responde en el puerto 3000.");
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden font-sans">
@@ -71,6 +73,11 @@ export const LoginScreen = ({ onLogin }) => {
 
         <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 p-8 rounded-sm shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-600/50 to-transparent" />
+          {errorMsg && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-sm text-red-500 text-xs font-mono text-center animate-pulse">
+              [!] {errorMsg}
+            </div>
+          )}
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-sm text-red-500 text-xs font-mono text-center animate-pulse">
               [!] {errorMsg}
