@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { Sidebar } from './components/layout/Sidebar';
+import { Dashboard } from './components/dashboard/Dashboard'; // 👉 NUEVO IMPORT
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -9,18 +10,20 @@ function App() {
 
   const handleNavigate = (id) => {
     setActiveTab(id);
-    setIsMobileMenuOpen(false); // Cierra el menú en móviles al navegar
+    setIsMobileMenuOpen(false);
   };
+
+  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
   if (!isAuthenticated) {
     return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
   }
 
-  // Renderizador condicional de vistas 
   const renderView = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <div className="p-8 text-slate-400">Contenido del Control Center (Dashboard pendiente)</div>;
+        // 👉 INYECCIÓN DEL DASHBOARD
+        return <Dashboard onMenuClick={toggleMobileMenu} />; 
       case 'bodega':
         return <div className="p-8 text-amber-500">Interfaz del Agente de Bodega (Chat pendiente)</div>;
       case 'ventas':
@@ -36,7 +39,6 @@ function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-950 font-sans">
-      {/* Navegación Lateral */}
       <Sidebar 
         activeTab={activeTab} 
         onNavigate={handleNavigate} 
@@ -44,17 +46,8 @@ function App() {
         onClose={() => setIsMobileMenuOpen(false)}
       />
 
-      {/* Área Principal de Trabajo */}
       <main className="flex-1 flex overflow-hidden relative">
-        {/* Botón temporal para abrir el menú en móviles */}
-        <button 
-          className="lg:hidden absolute top-4 right-4 z-50 text-white bg-blue-600 p-2 rounded"
-          onClick={() => setIsMobileMenuOpen(true)}
-        >
-          Menú
-        </button>
-
-        <div className="flex-1 flex flex-col min-w-0 bg-slate-950/50">
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-950">
           {renderView()}
         </div>
       </main>
