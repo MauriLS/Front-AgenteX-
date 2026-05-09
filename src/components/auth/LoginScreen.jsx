@@ -5,10 +5,45 @@ import { motion } from 'motion/react';
 export const LoginScreen = ({ onLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onLogin(); // Simula el inicio de sesión
+    setErrorMsg('');
+    setIsLoading(true);
+
+    try {
+      // 🚩 ASEGÚRATE de que esta ruta sea la correcta en tu Node.js
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Verifica si tu backend espera 'email' o 'username'
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.token) {
+        // INYECCIÓN DE MEMORIA: Guardamos la credencial en el navegador
+        localStorage.setItem('token', data.token);
+        // Opcional: guardar datos del usuario si tu API los devuelve
+        if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+
+        onLogin(); // Le avisamos al Orquestador (App.jsx) que abra las puertas
+      } else {
+        setErrorMsg(data.error || "Credenciales inválidas. Acceso denegado.");
+      }
+    } catch (error) {
+      console.error("Fallo de red en login:", error);
+      setErrorMsg("Fallo crítico de red. El servidor de autenticación no responde.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -19,7 +54,7 @@ export const LoginScreen = ({ onLogin }) => {
         <div className="absolute top-[60%] -right-[5%] w-[30%] h-[30%] bg-emerald-500/5 blur-[100px] rounded-full" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-[400px] z-10"
@@ -36,13 +71,17 @@ export const LoginScreen = ({ onLogin }) => {
 
         <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 p-8 rounded-sm shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-600/50 to-transparent" />
-          
+          {errorMsg && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-sm text-red-500 text-xs font-mono text-center animate-pulse">
+              [!] {errorMsg}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-2 block">Identity Provider</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input 
+                <input
                   type="email"
                   required
                   placeholder="u-id@enterprise.x"
@@ -57,7 +96,7 @@ export const LoginScreen = ({ onLogin }) => {
               <label className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-2 block">Encryption Key</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input 
+                <input
                   type="password"
                   required
                   placeholder="••••••••••••"
@@ -68,7 +107,7 @@ export const LoginScreen = ({ onLogin }) => {
               </div>
             </div>
 
-            <button 
+            <button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-sm transition-all flex items-center justify-center gap-2 group mt-4"
             >
