@@ -100,7 +100,7 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
         setIsLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/api/chat/send`, { // Ajusta a tu ruta real de Node
+            const response = await fetch(`${API_URL}/api/chat/message`, { // Ajusta a tu ruta real de Node
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
