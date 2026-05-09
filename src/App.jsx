@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { LoginScreen } from './components/auth/LoginScreen';
 import { Sidebar } from './components/layout/Sidebar';
-import { Dashboard } from './components/dashboard/Dashboard'; // 👉 NUEVO IMPORT
+import { Dashboard } from './components/dashboard/Dashboard'; 
+import { ChatInterface } from './components/chat/ChatInterface';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -22,14 +23,12 @@ function App() {
   const renderView = () => {
     switch (activeTab) {
       case 'dashboard':
-        // 👉 INYECCIÓN DEL DASHBOARD
         return <Dashboard onMenuClick={toggleMobileMenu} />; 
       case 'bodega':
-        return <div className="p-8 text-amber-500">Interfaz del Agente de Bodega (Chat pendiente)</div>;
       case 'ventas':
-        return <div className="p-8 text-emerald-500">Interfaz del Agente de Ventas (Chat pendiente)</div>;
       case 'analitica':
-        return <div className="p-8 text-blue-500">Interfaz de Analítica (Chat pendiente)</div>;
+        // 👉 INYECCIÓN DEL CHAT REAL PARA LOS AGENTES
+        return <ChatInterface agentId={activeTab} onMenuClick={toggleMobileMenu} />;
       case 'settings':
         return <div className="p-8 text-slate-400">Pantalla de Configuración</div>;
       default:
