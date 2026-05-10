@@ -105,9 +105,12 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                 headers: {
                     'Content-Type': 'application/json',
                     // Si tienes autenticación JWT en Node, aquí va el token:
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` 
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify({ prompt: userText })
+                body: JSON.stringify({
+                    prompt: userText,
+                    agentTemplateId: agentId // Inyectamos el ID del agente activo
+                })
             });
 
             if (!response.ok) throw new Error('Error en el pipeline de IA');
