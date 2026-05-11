@@ -1,6 +1,15 @@
-import { useState } from 'react';
-import { LayoutDashboard, Warehouse, TrendingUp, BarChart3, Settings, LogOut, Shield, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LayoutDashboard, Warehouse, TrendingUp, BarChart3, Settings, LogOut, Shield, ChevronRight, Bot } from 'lucide-react';
 import { cn } from '../../lib/utils';
+
+// Diccionario visual: Mapea el template_id de Supabase con un icono de Lucide
+const iconMap = {
+  bodega: Warehouse,
+  ventas: TrendingUp,
+  analitica: BarChart3,
+  // Fallback: Si creas un agente nuevo en el futuro y olvidas ponerle icono, usará este robot por defecto
+  default: Bot 
+};
 
 const NavItem = ({ icon: Icon, label, active, onClick, collapsed }) => (
   <button
@@ -22,12 +31,48 @@ const NavItem = ({ icon: Icon, label, active, onClick, collapsed }) => (
 
 export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [dynamicAgents, setDynamicAgents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const navItems = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Control Center' },
-    { id: 'bodega', icon: Warehouse, label: 'Agente Bodega' },
-    { id: 'ventas', icon: TrendingUp, label: 'Agente de Ventas' },
-    { id: 'analitica', icon: BarChart3, label: 'Agente de Analítica' },
+  // El cerebro B2B: Busca los agentes autorizados al cargar el menú
+  useEffect(() => {
+    const fetchMyAgents = async () => {
+      try {
+        const token = localStorage.getItem('token'); 
+        
+        // Cuidado aquí: Usa la variable de entorno que corresponda a tu proyecto (Vite)
+        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/agents/my-agents`; 
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setDynamicAgents(data.agents);
+          }
+        } else if (response.status === 401) {
+            console.error("Token expirado o inválido. Debes redirigir al login.");
+            // Aquí podrías agregar una redirección o limpiar el localStorage
+        }
+      } catch (error) {
+        console.error("Falla de red al descubrir agentes:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMyAgents();
+  }, []); // El array vacío asegura que esto solo se ejecute una vez al montar el componente
+
+  // Opciones base que siempre deben existir independientemente de los permisos
+  const baseItems = [
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Control Center' }
   ];
 
   return (
@@ -59,16 +104,52 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
 
         {/* Primary Nav */}
         <nav className="flex-1 space-y-1">
-          {navItems.map((item) => (
+          {/* 1. Dibujamos el Control Center siempre */}
+          {baseItems.map((item) => (
             <NavItem
               key={item.id}
               icon={item.icon}
               label={item.label}
               active={activeTab === item.id}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => {
+                onNavigate(item.id);
+                if(window.innerWidth < 1024) onClose(); // Cierra en mobile
+              }}
               collapsed={collapsed}
             />
           ))}
+
+          {/* 2. Sección Dinámica: Los agentes pagados */}
+          {!collapsed && (
+              <div className="px-3 pt-4 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Tus Agentes
+              </div>
+          )}
+          
+          {isLoading ? (
+             <div className="px-4 py-2 text-xs text-slate-500">Cargando módulos...</div>
+          ) : dynamicAgents.length === 0 ? (
+             <div className="px-4 py-2 text-xs text-slate-500 italic">Sin agentes activos</div>
+          ) : (
+            dynamicAgents.map((agent) => {
+              // Asignamos el icono basado en el templateId, o usamos el fallback
+              const IconComponent = iconMap[agent.templateId] || iconMap.default;
+              
+              return (
+                <NavItem
+                  key={agent.instanceId} // Usamos el ID de la instancia de BD
+                  icon={IconComponent}
+                  label={agent.name}
+                  active={activeTab === agent.templateId} // Seguimos usando templateId para la lógica de React
+                  onClick={() => {
+                    onNavigate(agent.templateId);
+                    if(window.innerWidth < 1024) onClose(); // Cierra en mobile
+                  }}
+                  collapsed={collapsed}
+                />
+              );
+            })
+          )}
         </nav>
 
         {/* Footer Nav */}
@@ -78,9 +159,22 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
             label="Configuración" 
             collapsed={collapsed} 
             active={activeTab === 'settings'}
-            onClick={() => onNavigate('settings')}
+            onClick={() => {
+              onNavigate('settings');
+              if(window.innerWidth < 1024) onClose();
+            }}
           />
-          <NavItem icon={LogOut} label="Terminate Session" collapsed={collapsed} />
+          {/* El botón de Logout debería tener lógica, no solo un onClick vacío */}
+          <NavItem 
+            icon={LogOut} 
+            label="Terminate Session" 
+            collapsed={collapsed} 
+            onClick={() => {
+                // Aquí va tu lógica real de cierre de sesión
+                localStorage.removeItem('token');
+                window.location.href = '/login'; // O usar useNavigate de react-router
+            }}
+          />
           
           <button 
             onClick={() => setCollapsed(!collapsed)}
