@@ -8,7 +8,7 @@ const iconMap = {
   ventas: TrendingUp,
   analitica: BarChart3,
   // Fallback: Si creas un agente nuevo en el futuro y olvidas ponerle icono, usará este robot por defecto
-  default: Bot 
+  default: Bot
 };
 
 const NavItem = ({ icon: Icon, label, active, onClick, collapsed }) => (
@@ -16,8 +16,8 @@ const NavItem = ({ icon: Icon, label, active, onClick, collapsed }) => (
     onClick={onClick}
     className={cn(
       "w-full flex items-center gap-3 px-3 py-2.5 transition-all duration-200 group relative",
-      active 
-        ? "bg-blue-600/10 text-blue-500 border-r-2 border-blue-600" 
+      active
+        ? "bg-blue-600/10 text-blue-500 border-r-2 border-blue-600"
         : "text-slate-400 hover:text-slate-100 hover:bg-white/5"
     )}
   >
@@ -38,11 +38,11 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
   useEffect(() => {
     const fetchMyAgents = async () => {
       try {
-        const token = localStorage.getItem('token'); 
-        
+        const token = localStorage.getItem('token');
+
         // Cuidado aquí: Usa la variable de entorno que corresponda a tu proyecto (Vite)
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/agents/my-agents`; 
-        
+        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/agents/my-agents`;
+
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -57,8 +57,8 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
             setDynamicAgents(data.agents);
           }
         } else if (response.status === 401) {
-            console.error("Token expirado o inválido. Debes redirigir al login.");
-            // Aquí podrías agregar una redirección o limpiar el localStorage
+          console.error("Token expirado o inválido. Debes redirigir al login.");
+          // Aquí podrías agregar una redirección o limpiar el localStorage
         }
       } catch (error) {
         console.error("Falla de red al descubrir agentes:", error);
@@ -79,7 +79,7 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[60] lg:hidden"
           onClick={onClose}
         />
@@ -113,7 +113,7 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
               active={activeTab === item.id}
               onClick={() => {
                 onNavigate(item.id);
-                if(window.innerWidth < 1024) onClose(); // Cierra en mobile
+                if (window.innerWidth < 1024) onClose(); // Cierra en mobile
               }}
               collapsed={collapsed}
             />
@@ -121,20 +121,20 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
 
           {/* 2. Sección Dinámica: Los agentes pagados */}
           {!collapsed && (
-              <div className="px-3 pt-4 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Tus Agentes
-              </div>
+            <div className="px-3 pt-4 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Tus Agentes
+            </div>
           )}
-          
+
           {isLoading ? (
-             <div className="px-4 py-2 text-xs text-slate-500">Cargando módulos...</div>
+            <div className="px-4 py-2 text-xs text-slate-500">Cargando módulos...</div>
           ) : dynamicAgents.length === 0 ? (
-             <div className="px-4 py-2 text-xs text-slate-500 italic">Sin agentes activos</div>
+            <div className="px-4 py-2 text-xs text-slate-500 italic">Sin agentes activos</div>
           ) : (
             dynamicAgents.map((agent) => {
               // Asignamos el icono basado en el templateId, o usamos el fallback
               const IconComponent = iconMap[agent.templateId] || iconMap.default;
-              
+
               return (
                 <NavItem
                   key={agent.instanceId} // Usamos el ID de la instancia de BD
@@ -143,7 +143,7 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
                   active={activeTab === agent.templateId} // Seguimos usando templateId para la lógica de React
                   onClick={() => {
                     onNavigate(agent.templateId);
-                    if(window.innerWidth < 1024) onClose(); // Cierra en mobile
+                    if (window.innerWidth < 1024) onClose(); // Cierra en mobile
                   }}
                   collapsed={collapsed}
                 />
@@ -152,31 +152,42 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
           )}
         </nav>
 
+        {/* Solo mostramos la opción de "Alta de Clientes" si el rol es ADMIN */}
+        {JSON.parse(localStorage.getItem('user'))?.role === 'ADMIN' && (
+          <NavItem
+            icon={Shield}
+            label="Aprovisionar Empresa"
+            active={activeTab === 'provisioning'}
+            onClick={() => onNavigate('provisioning')}
+            collapsed={collapsed}
+          />
+        )}
+
         {/* Footer Nav */}
         <div className="p-2 space-y-1 border-t border-slate-800/50">
-          <NavItem 
-            icon={Settings} 
-            label="Configuración" 
-            collapsed={collapsed} 
+          <NavItem
+            icon={Settings}
+            label="Configuración"
+            collapsed={collapsed}
             active={activeTab === 'settings'}
             onClick={() => {
               onNavigate('settings');
-              if(window.innerWidth < 1024) onClose();
+              if (window.innerWidth < 1024) onClose();
             }}
           />
           {/* El botón de Logout debería tener lógica, no solo un onClick vacío */}
-          <NavItem 
-            icon={LogOut} 
-            label="Terminate Session" 
-            collapsed={collapsed} 
+          <NavItem
+            icon={LogOut}
+            label="Terminate Session"
+            collapsed={collapsed}
             onClick={() => {
-                // Aquí va tu lógica real de cierre de sesión
-                localStorage.removeItem('token');
-                window.location.href = '/login'; // O usar useNavigate de react-router
+              // Aquí va tu lógica real de cierre de sesión
+              localStorage.removeItem('token');
+              window.location.href = '/login'; // O usar useNavigate de react-router
             }}
           />
-          
-          <button 
+
+          <button
             onClick={() => setCollapsed(!collapsed)}
             className="w-full flex items-center justify-center h-10 mt-2 hover:bg-white/5 transition-colors text-slate-500 hover:text-slate-100"
           >
