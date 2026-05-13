@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Bot, User, Database, Link as LinkIcon, CheckCircle, Loader2, Sparkles, Menu } from 'lucide-react';
+import { Send, Paperclip, Bot, User, Database, CheckCircle, Loader2, Sparkles, Menu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
@@ -39,7 +39,6 @@ const MessageCard = ({ message }) => {
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                     </div>
 
-                    {/* Metadatos Dinámicos */}
                     {isAI && message.metadata && (
                         <div className="mt-4 pt-4 border-t border-slate-800 flex flex-wrap gap-3">
                             {message.metadata.erpStatus && (
@@ -73,8 +72,7 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef(null);
 
-    // Define la URL de tu backend de Python (Ajusta el puerto 8000 al que uses en Uvicorn)
-    const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -95,46 +93,60 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
             timestamp: new Date()
         };
 
+        // 1. Extraemos el historial actual (excluyendo el saludo inicial con id '1')
+        const currentHistory = messages
+            .filter(msg => msg.id !== '1')
+            .map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'assistant',
+                content: msg.content
+            }));
+
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
 
+        // 2. Construimos el Payload EXACTO que espera Node.js
+        const payload = {
+            message: userText,
+            agent_id: agentId,
+            history: currentHistory
+        };
+
         try {
-            const response = await fetch(`${API_URL}/api/chat/message`, { // Ajusta a tu ruta real de Node
+            const response = await fetch(`${API_URL}/api/chat/message`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Si tienes autenticación JWT en Node, aquí va el token:
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify({
-                    prompt: userText,
-                    agentTemplateId: agentId // Inyectamos el ID del agente activo
-                })
+                body: JSON.stringify(payload) // Enviamos el payload corregido
             });
 
-            if (!response.ok) throw new Error('Error en el pipeline de IA');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
 
             const data = await response.json();
 
+            // 3. Leemos data.reply (como devuelve tu backend)
             const aiMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                // Asumiendo que tu Python devuelve {"success": true, "respuesta": "..."}
-                content: data.respuesta || "Error: No se recibió respuesta del orquestador.",
+                content: data.reply || "Error: No se recibió respuesta del orquestador.",
                 timestamp: new Date(),
                 metadata: {
-                    erpStatus: 'synced' // Aquí podrías hacer que Python te devuelva si usó herramienta o no
+                    erpStatus: 'synced'
                 }
             };
 
             setMessages(prev => [...prev, aiMessage]);
         } catch (error) {
-            console.error(error);
+            console.error("Error en el pipeline de IA:", error);
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: `**CRITICAL ERROR:** No se pudo establecer conexión con el orquestador principal en \`${API_URL}\`. Verifica que Uvicorn esté corriendo.`,
+                content: `**CRITICAL ERROR:** Fallo de comunicación con el orquestador. \nDetalle: ${error.message}`,
                 timestamp: new Date()
             }]);
         } finally {
