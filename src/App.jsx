@@ -1,27 +1,21 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 
-// Importaciones de tus componentes visuales
-import { LoginScreen } from './components/auth/LoginScreen';
-import { RegisterB2B } from './components/auth/Register'; 
-import { Sidebar } from './components/layout/Sidebar';
-import { Dashboard } from './components/dashboard/Dashboard';
+import { LoginScreen }  from './components/auth/LoginScreen';
+import { RegisterB2B }  from './components/auth/Register';
+import { Sidebar }      from './components/layout/Sidebar';
+import { Dashboard }    from './components/dashboard/Dashboard';
 import { ChatInterface } from './components/chat/ChatInterface';
 
-// ==========================================
-// 1. EL BLINDAJE B2B (Middleware de Frontend)
-// ==========================================
+// ── Blindaje B2B ─────────────────────────────────────────────────────────────
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
-  // Si no hay token en el navegador, lo expulsamos inmediatamente al login
   return token ? children : <Navigate to="/login" replace />;
 };
 
-// ==========================================
-// 2. EL ECOSISTEMA PRIVADO (Tu código actual encapsulado)
-// ==========================================
+// ── Ecosistema privado ────────────────────────────────────────────────────────
 const CoreSystem = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab]           = useState('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleNavigate = (id) => {
@@ -29,15 +23,19 @@ const CoreSystem = () => {
     setIsMobileMenuOpen(false);
   };
 
-  const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+  const toggleMobileMenu = () => setIsMobileMenuOpen(prev => !prev);
 
   const renderView = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onMenuClick={toggleMobileMenu} />; 
-      //  NUEVA VISTA: Solo tú (Admin Maestro) la verás
+        return (
+          <Dashboard
+            onMenuClick={toggleMobileMenu}
+            onNavigate={handleNavigate}   // ← necesario para que las cards sean clickeables
+          />
+        );
       case 'provisioning':
-        return <RegisterB2B />; 
+        return <RegisterB2B />;
       case 'settings':
         return <div className="p-8 text-slate-400">Configuración de Perfil</div>;
       default:
@@ -62,40 +60,28 @@ const CoreSystem = () => {
   );
 };
 
-// ==========================================
-// 3. EL ENRUTADOR PRINCIPAL (El controlador de tráfico)
-// ==========================================
+// ── Enrutador principal ───────────────────────────────────────────────────────
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Redirección raíz: Si entran a /, los mandamos a la app. Si no tienen token, PrivateRoute los echa al login */}
-        <Route path="/" element={<Navigate to="/app" replace />} />
-        
-        {/* ZONA PÚBLICA */}
-        <Route 
-          path="/login" 
+        <Route path="/"       element={<Navigate to="/app" replace />} />
+        <Route
+          path="/login"
           element={
-            <LoginScreen 
-              onLogin={() => {
-                // Al hacer login exitoso, recargamos hacia el ecosistema privado
-                window.location.href = '/app'; 
-              }} 
+            <LoginScreen
+              onLogin={() => { window.location.href = '/app'; }}
             />
-          } 
-        />  
-
-        {/* ZONA PRIVADA (Protegida) */}
-        <Route 
-          path="/app/*" 
+          }
+        />
+        <Route
+          path="/app/*"
           element={
             <PrivateRoute>
               <CoreSystem />
             </PrivateRoute>
-          } 
+          }
         />
-
-        {/* Fallback 404 */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>

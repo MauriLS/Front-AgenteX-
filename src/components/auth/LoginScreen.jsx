@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Shield, ArrowRight, Lock, User, Globe, Loader2 } from 'lucide-react'; // Añadí Loader2
+import { Shield, ArrowRight, Lock, User, Globe, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const LoginScreen = ({ onLogin }) => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 🚩 Apuntamos al backend de Node.js
   const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
 
   const handleSubmit = async (e) => {
@@ -17,40 +16,31 @@ export const LoginScreen = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
-      // 1. GOLPEAMOS EL ENDPOINT REAL DE NODE.JS
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }) 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (response.ok && data.token) {
-        // 2. EL MOMENTO CLAVE: Guardamos el pase VIP real
         localStorage.setItem('token', data.token);
-        if (data.user) localStorage.setItem('user', JSON.stringify(data.user)); 
-        
-        // 3. Abrimos las puertas del frontend
-        onLogin(); 
+        if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+        onLogin();
       } else {
-        // Credenciales rechazadas por la base de datos
-        setErrorMsg(data.error || "Credenciales inválidas. Acceso denegado.");
+        setErrorMsg(data.error || 'Credenciales inválidas. Acceso denegado.');
       }
     } catch (error) {
-      console.error("Fallo de red en login:", error);
-      setErrorMsg("Fallo crítico de red. Node.js no responde en el puerto 3000.");
+      console.error('Fallo de red en login:', error);
+      setErrorMsg('Fallo crítico de red. Servidor no responde.');
     } finally {
       setIsLoading(false);
     }
   };
 
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6 relative overflow-hidden font-sans">
-      {/* Abstract Background Accents */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[5%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
         <div className="absolute top-[60%] -right-[5%] w-[30%] h-[30%] bg-emerald-500/5 blur-[100px] rounded-full" />
@@ -73,19 +63,19 @@ export const LoginScreen = ({ onLogin }) => {
 
         <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800 p-8 rounded-sm shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-600/50 to-transparent" />
+
+          {/* FIX: Error message sin duplicado */}
           {errorMsg && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-sm text-red-500 text-xs font-mono text-center animate-pulse">
               [!] {errorMsg}
             </div>
           )}
-          {errorMsg && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-sm text-red-500 text-xs font-mono text-center animate-pulse">
-              [!] {errorMsg}
-            </div>
-          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-2 block">Identity Provider</label>
+              <label className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-2 block">
+                Identity Provider
+              </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
@@ -100,7 +90,9 @@ export const LoginScreen = ({ onLogin }) => {
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-2 block">Encryption Key</label>
+              <label className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-2 block">
+                Encryption Key
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
@@ -116,10 +108,20 @@ export const LoginScreen = ({ onLogin }) => {
 
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-sm transition-all flex items-center justify-center gap-2 group mt-4"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-sm transition-all flex items-center justify-center gap-2 group mt-4"
             >
-              INITIALIZE SYSTEM
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  AUTHENTICATING...
+                </>
+              ) : (
+                <>
+                  INITIALIZE SYSTEM
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
           </form>
 
