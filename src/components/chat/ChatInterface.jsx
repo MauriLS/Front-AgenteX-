@@ -1,7 +1,9 @@
+// ChatInterface.jsx 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Bot, User, Database, CheckCircle, Loader2, Sparkles, Menu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { motion } from 'motion/react';
+import remarkGfm from 'remark-gfm';
+import { motion } from 'motion/react'; 
 import { cn } from '../../lib/utils';
 
 const MessageCard = ({ message }) => {
@@ -26,17 +28,36 @@ const MessageCard = ({ message }) => {
             </div>
 
             <div className={cn(
-                "flex flex-col max-w-[85%] md:max-w-[80%]",
+                "flex flex-col max-w-[90%] md:max-w-[85%]", // 🚩 Ampliado para dar espacio a tablas
                 isAI ? "items-start" : "items-end"
             )}>
                 <div className={cn(
-                    "px-3 py-2 md:px-4 md:py-3 rounded-sm text-sm border shadow-md",
+                    "px-4 py-3 md:px-5 md:py-4 rounded-sm text-sm border shadow-md w-full",
                     isAI
                         ? "bg-slate-900/80 border-slate-800 text-slate-100"
                         : "bg-blue-600 text-white border-blue-500"
                 )}>
-                    <div className={cn("prose prose-invert prose-sm leading-relaxed max-w-none", !isAI && "text-white")}>
-                        <ReactMarkdown>{message.content}</ReactMarkdown>
+                    {/* 🚩 Renderizador personalizado para evitar el colapso de las tablas */}
+                    <div className={cn("text-sm leading-relaxed", !isAI && "text-white")}>
+                        <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                                table: ({node, ...props}) => (
+                                    <div className="overflow-x-auto w-full my-4 border border-slate-700/50 rounded-sm shadow-sm">
+                                        <table className="w-full text-left text-sm border-collapse" {...props} />
+                                    </div>
+                                ),
+                                thead: ({node, ...props}) => <thead className="bg-slate-800/80 border-b border-slate-700/50 font-mono text-[11px] text-slate-400 uppercase tracking-wider" {...props} />,
+                                th: ({node, ...props}) => <th className="px-4 py-3 font-semibold whitespace-nowrap" {...props} />,
+                                td: ({node, ...props}) => <td className="px-4 py-2 border-b border-slate-800/50 whitespace-nowrap text-slate-200" {...props} />,
+                                tr: ({node, ...props}) => <tr className="hover:bg-slate-800/30 transition-colors" {...props} />,
+                                p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
+                                ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 space-y-1" {...props} />,
+                                strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />
+                            }}
+                        >
+                            {message.content}
+                        </ReactMarkdown>
                     </div>
 
                     {isAI && message.metadata && (
@@ -60,6 +81,8 @@ const MessageCard = ({ message }) => {
 };
 
 export const ChatInterface = ({ agentId, onMenuClick }) => {
+    const [sessionId, setSessionId] = useState(null); // 🚩 Estado de sesión añadido
+    
     const [messages, setMessages] = useState([{
         id: '1',
         role: 'assistant',
@@ -93,7 +116,6 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
             timestamp: new Date()
         };
 
-        // 1. Extraemos el historial actual (excluyendo el saludo inicial con id '1')
         const currentHistory = messages
             .filter(msg => msg.id !== '1')
             .map(msg => ({
@@ -105,11 +127,12 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
         setInput('');
         setIsLoading(true);
 
-        // 2. Construimos el Payload EXACTO que espera Node.js
+        // 🚩 Payload con la sesión inyectada
         const payload = {
             message: userText,
             agent_id: agentId,
-            history: currentHistory
+            history: currentHistory,
+            session_chat_id: sessionId
         };
 
         try {
@@ -119,7 +142,7 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify(payload) // Enviamos el payload corregido
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
@@ -129,7 +152,11 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
 
             const data = await response.json();
 
-            // 3. Leemos data.reply (como devuelve tu backend)
+            // 🚩 Captura de la nueva sesión
+            if (data.session_chat_id && !sessionId) {
+                setSessionId(data.session_chat_id);
+            }
+
             const aiMessage = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
@@ -168,6 +195,11 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                         CHANNEL: OPS-{agentId?.toUpperCase() || 'MAIN'}-COMMAND
                     </h2>
                 </div>
+                {sessionId && (
+                    <div className="hidden md:flex text-[9px] font-mono text-slate-500 border border-slate-800 px-2 py-1 rounded-sm">
+                        SESSION_ID: {sessionId}
+                    </div>
+                )}
             </header>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto pt-4 md:pt-8 pb-12 z-10 scrollbar-thin scrollbar-thumb-slate-800">
@@ -177,11 +209,11 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                     ))}
 
                     {isLoading && (
-                        <div className="flex gap-4 px-4 items-start">
+                        <div className="flex w-full mb-6 gap-3 md:gap-4 px-3 md:px-4 items-start">
                             <div className="w-8 h-8 rounded-sm bg-slate-900 border border-slate-800 flex items-center justify-center text-blue-500 animate-pulse mt-1">
                                 <Loader2 size={18} className="animate-spin" />
                             </div>
-                            <div className="bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-sm flex items-center gap-3">
+                            <div className="bg-slate-900/50 border border-slate-800 px-4 py-3 rounded-sm flex items-center gap-3 w-fit">
                                 <span className="text-xs font-mono text-slate-400">Ejecutando orquestador y consultando ERP...</span>
                             </div>
                         </div>
@@ -201,7 +233,7 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                             </button>
                             <input
                                 type="text"
-                                placeholder="Dime el precio del artículo 18..."
+                                placeholder="Dime el precio del artículo 18..." // 🚩 Restaurado
                                 className="flex-1 bg-transparent border-none py-3 md:py-4 px-1 md:px-2 text-sm text-slate-100 focus:outline-none placeholder:text-slate-700"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
@@ -222,6 +254,7 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                         </div>
                     </form>
 
+                    {/* 🚩 Footer estético restaurado */}
                     <div className="mt-3 flex items-center justify-center gap-6 opacity-30">
                         <div className="flex items-center gap-2 text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">
                             <Sparkles size={10} /> Live API
