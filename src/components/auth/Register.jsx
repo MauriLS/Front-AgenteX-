@@ -43,6 +43,22 @@ export const RegisterB2B = () => {
   // ── Agentes a provisionar ────────────────────────────────────────────────
   const [agents, setAgents] = useState([AGENT_INICIAL]);
 
+  // ── Configuración extra por agente (ventas: URLs de clientes e historial) ─
+  // Es un array paralelo a agents — índice 0 de salesConfig corresponde al
+  // agente 0, etc. Solo se usa cuando template_id === 'ventas'.
+  const [salesConfig, setSalesConfig] = useState([{
+    clientes_url:      '',
+    historial_url:     '',
+    cliente_id_campo:  'rut',
+  }]);
+
+  const handleSalesConfigChange = (index, field, value) => {
+    const updated = [...salesConfig];
+    if (!updated[index]) updated[index] = { clientes_url: '', historial_url: '', cliente_id_campo: 'rut' };
+    updated[index][field] = value;
+    setSalesConfig(updated);
+  };
+
   // ── UI state ─────────────────────────────────────────────────────────────
   const [showContext,  setShowContext]  = useState(false);
   const [status, setStatus] = useState({ loading: false, error: '', success: '' });
@@ -59,24 +75,39 @@ export const RegisterB2B = () => {
     setAgents(updated);
   };
 
-  const addAgent = () =>
+  const addAgent = () => {
     setAgents([...agents, { template_id: 'ventas', temperature: 0.5, custom_instructions: '' }]);
+    setSalesConfig([...salesConfig, { clientes_url: '', historial_url: '', cliente_id_campo: 'rut' }]);
+  };
 
   const removeAgent = (index) => {
     if (agents.length === 1) return;
     setAgents(agents.filter((_, i) => i !== index));
+    setSalesConfig(salesConfig.filter((_, i) => i !== index));
   };
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('🗺️ erpMapping:', JSON.stringify(erpMapping));
+    setStatus({ loading: true, error: '', success: '' });
 
-    // erpMapping viene de ERPMappingSection — ya está limpio y listo.
-    // Si el admin no configuró el mapeo, llega null — lo pasamos tal cual.
+    // Combinar erpMapping base con las configuraciones de ventas si existen.
+    // Si algún agente es de ventas, sus URLs se inyectan en el erp_mapping
+    // para que el motor de ventas pueda acceder a clientes e historial.
+    const tieneAgentVentas = agents.some(a => a.template_id === 'ventas');
+    let mappingFinal = erpMapping ? { ...erpMapping } : {};
+
+    if (tieneAgentVentas) {
+      const idxVentas = agents.findIndex(a => a.template_id === 'ventas');
+      const sc = salesConfig[idxVentas] || {};
+      if (sc.clientes_url)     mappingFinal.clientes_url      = sc.clientes_url;
+      if (sc.historial_url)    mappingFinal.historial_url     = sc.historial_url;
+      if (sc.cliente_id_campo) mappingFinal.cliente_id_campo  = sc.cliente_id_campo;
+    }
+
     const payload = {
       ...formData,
-      erp_mapping:         erpMapping || null,
+      erp_mapping:         Object.keys(mappingFinal).length > 0 ? mappingFinal : null,
       agents_to_provision: agents,
     };
 
@@ -100,6 +131,7 @@ export const RegisterB2B = () => {
       setFormData({ company_name: '', erp_url: '', business_context: '', username: '', email: '', password: '' });
       setErpMapping(null);
       setAgents([AGENT_INICIAL]);
+      setSalesConfig([{ clientes_url: '', historial_url: '', cliente_id_campo: 'rut' }]);
 
     } catch (err) {
       setStatus({ loading: false, error: err.message, success: '' });
@@ -146,8 +178,8 @@ export const RegisterB2B = () => {
               </div>
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">
-                  URL Endpoint ERP Principal
-                  <Tooltip text="URL del GET que devuelve el listado de productos/registros. Ej: https://api.empresa.com/articulos" />
+                  URL Endpoint de Productos
+                  <Tooltip text="Endpoint GET del catálogo principal (productos, artículos, inventario). Se guarda como productos_url en el mapping. Ej: https://api.empresa.com/articulos" />
                 </label>
                 <input type="url" name="erp_url" value={formData.erp_url}
                   onChange={handleBaseChange} placeholder="https://api.empresa.com/productos"
@@ -300,10 +332,63 @@ export const RegisterB2B = () => {
                             ? 'Eres el operario de bodega de [EMPRESA]. Tono crudo y transaccional. Solo reportas datos del ERP, nunca inventas...'
                             : agent.template_id === 'analitica'
                             ? 'Eres el analista de datos de [EMPRESA]. Presentas métricas con contexto. Usas tablas para comparaciones...'
-                            : 'Eres el agente comercial de [EMPRESA]. Tu objetivo es ayudar al equipo de ventas...'
+                            : 'Eres el agente comercial de [EMPRESA]. Tu objetivo es ayudar al equipo de ventas con contexto del cliente...'
                         }
                         className="w-full bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-slate-300 focus:border-blue-600 outline-none min-h-[140px] resize-y placeholder:text-slate-700 font-mono"
                       />
+
+                      {/* Panel de configuración extra — solo visible para agente de ventas */}
+                      {agent.template_id === 'ventas' && (
+                        <div className="mt-4 p-4 bg-slate-900 border border-blue-600/20 rounded-sm">
+                          <p className="text-[10px] text-blue-500 uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5">
+                            <Server className="w-3 h-3" /> Configuración de fuentes de datos — Ventas
+                          </p>
+                          <div className="grid grid-cols-1 gap-3">
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">
+                                URL endpoint clientes
+                                <Tooltip text="Endpoint GET que devuelve la lista de clientes. El sistema buscará al cliente mencionado en la conversación." />
+                              </label>
+                              <input
+                                type="url"
+                                value={salesConfig[index]?.clientes_url || ''}
+                                onChange={(e) => handleSalesConfigChange(index, 'clientes_url', e.target.value)}
+                                placeholder="https://api.empresa.com/clientes"
+                                className="w-full bg-slate-950 border border-slate-800 px-3 py-2 text-sm text-white focus:border-blue-600 outline-none placeholder:text-slate-700 font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">
+                                URL endpoint historial de compras
+                                <Tooltip text="Endpoint GET que devuelve el historial de compras. Se filtra por cliente_id para obtener las compras del cliente específico." />
+                              </label>
+                              <input
+                                type="url"
+                                value={salesConfig[index]?.historial_url || ''}
+                                onChange={(e) => handleSalesConfigChange(index, 'historial_url', e.target.value)}
+                                placeholder="https://api.empresa.com/historial"
+                                className="w-full bg-slate-950 border border-slate-800 px-3 py-2 text-sm text-white focus:border-blue-600 outline-none placeholder:text-slate-700 font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-slate-500 mb-1 block">
+                                Campo de identificación del cliente
+                                <Tooltip text="Nombre del campo en el JSON de clientes que contiene el identificador único. Ej: rut, dni, id, passport_number." />
+                              </label>
+                              <input
+                                type="text"
+                                value={salesConfig[index]?.cliente_id_campo || 'rut'}
+                                onChange={(e) => handleSalesConfigChange(index, 'cliente_id_campo', e.target.value)}
+                                placeholder="rut"
+                                className="w-full bg-slate-950 border border-slate-800 px-3 py-2 text-sm text-white focus:border-blue-600 outline-none placeholder:text-slate-700 font-mono"
+                              />
+                              <p className="text-xs text-slate-600 mt-1">
+                                Ej: <code className="text-slate-500">rut</code> · <code className="text-slate-500">dni</code> · <code className="text-slate-500">id</code>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
