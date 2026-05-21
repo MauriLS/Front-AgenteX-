@@ -6,6 +6,14 @@ import remarkGfm from 'remark-gfm';
 import { motion } from 'motion/react'; 
 import { cn } from '../../lib/utils';
 
+const mensajeBienvenida = () => ({
+    id:        Date.now().toString(),
+    role:      'assistant',
+    content:   '# Enlace Activo\nSistema de orquestación en línea. Esperando comandos o consultas de inventario.',
+    timestamp: new Date(),
+    metadata:  { erpStatus: 'synced' }
+});
+
 const MessageCard = ({ message }) => {
     const isAI = message.role === 'assistant';
 
@@ -28,7 +36,7 @@ const MessageCard = ({ message }) => {
             </div>
 
             <div className={cn(
-                "flex flex-col max-w-[90%] md:max-w-[85%]", // 🚩 Ampliado para dar espacio a tablas
+                "flex flex-col max-w-[90%] md:max-w-[85%]",
                 isAI ? "items-start" : "items-end"
             )}>
                 <div className={cn(
@@ -37,7 +45,6 @@ const MessageCard = ({ message }) => {
                         ? "bg-slate-900/80 border-slate-800 text-slate-100"
                         : "bg-blue-600 text-white border-blue-500"
                 )}>
-                    {/* 🚩 Renderizador personalizado para evitar el colapso de las tablas */}
                     <div className={cn("text-sm leading-relaxed", !isAI && "text-white")}>
                         <ReactMarkdown 
                             remarkPlugins={[remarkGfm]}
@@ -81,21 +88,20 @@ const MessageCard = ({ message }) => {
 };
 
 export const ChatInterface = ({ agentId, onMenuClick }) => {
-    const [sessionId, setSessionId] = useState(null); // 🚩 Estado de sesión añadido
-    
-    const [messages, setMessages] = useState([{
-        id: '1',
-        role: 'assistant',
-        content: '# Enlace Activo\nSistema de orquestación en línea. Esperando comandos o consultas de inventario.',
-        timestamp: new Date(),
-        metadata: { erpStatus: 'synced' }
-    }]);
-
-    const [input, setInput] = useState('');
+    const [sessionId, setSessionId] = useState(null);
+    const [messages, setMessages]   = useState(() => [mensajeBienvenida()]);
+    const [input, setInput]         = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const scrollRef = useRef(null);
+    const scrollRef                 = useRef(null);
 
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+    // Reset completo al cambiar de agente
+    useEffect(() => {
+        setMessages([mensajeBienvenida()]);
+        setSessionId(null);
+        setInput('');
+    }, [agentId]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -110,16 +116,17 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
         const userText = input.trim();
 
         const userMessage = {
-            id: Date.now().toString(),
-            role: 'user',
-            content: userText,
+            id:        Date.now().toString(),
+            role:      'user',
+            content:   userText,
             timestamp: new Date()
         };
 
         const currentHistory = messages
-            .filter(msg => msg.id !== '1')
+            .filter(msg => msg.role !== 'assistant' || msg.metadata?.erpStatus === undefined)
+            .filter(msg => msg.id !== messages[0]?.id) // excluir mensaje de bienvenida
             .map(msg => ({
-                role: msg.role === 'user' ? 'user' : 'assistant',
+                role:    msg.role === 'user' ? 'user' : 'assistant',
                 content: msg.content
             }));
 
@@ -127,19 +134,18 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
         setInput('');
         setIsLoading(true);
 
-        // 🚩 Payload con la sesión inyectada
         const payload = {
-            message: userText,
-            agent_id: agentId,
-            history: currentHistory,
+            message:         userText,
+            agent_id:        agentId,
+            history:         currentHistory,
             session_chat_id: sessionId
         };
 
         try {
             const response = await fetch(`${API_URL}/api/chat/message`, {
-                method: 'POST',
+                method:  'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type':  'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
                 body: JSON.stringify(payload)
@@ -152,28 +158,24 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
 
             const data = await response.json();
 
-            // 🚩 Captura de la nueva sesión
             if (data.session_chat_id && !sessionId) {
                 setSessionId(data.session_chat_id);
             }
 
-            const aiMessage = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: data.reply || "Error: No se recibió respuesta del orquestador.",
+            setMessages(prev => [...prev, {
+                id:        (Date.now() + 1).toString(),
+                role:      'assistant',
+                content:   data.reply || "Error: No se recibió respuesta del orquestador.",
                 timestamp: new Date(),
-                metadata: {
-                    erpStatus: 'synced'
-                }
-            };
+                metadata:  { erpStatus: 'synced' }
+            }]);
 
-            setMessages(prev => [...prev, aiMessage]);
         } catch (error) {
             console.error("Error en el pipeline de IA:", error);
             setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: `**CRITICAL ERROR:** Fallo de comunicación con el orquestador. \nDetalle: ${error.message}`,
+                id:        (Date.now() + 1).toString(),
+                role:      'assistant',
+                content:   `**CRITICAL ERROR:** Fallo de comunicación con el orquestador.\nDetalle: ${error.message}`,
                 timestamp: new Date()
             }]);
         } finally {
@@ -233,7 +235,7 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                             </button>
                             <input
                                 type="text"
-                                placeholder="Dime el precio del artículo 18..." // 🚩 Restaurado
+                                placeholder="Escribe tu consulta..."
                                 className="flex-1 bg-transparent border-none py-3 md:py-4 px-1 md:px-2 text-sm text-slate-100 focus:outline-none placeholder:text-slate-700"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
@@ -254,7 +256,6 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                         </div>
                     </form>
 
-                    {/* 🚩 Footer estético restaurado */}
                     <div className="mt-3 flex items-center justify-center gap-6 opacity-30">
                         <div className="flex items-center gap-2 text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest">
                             <Sparkles size={10} /> Live API
