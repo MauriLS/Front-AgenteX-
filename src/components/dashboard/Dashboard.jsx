@@ -1,95 +1,96 @@
-// Dashboard.jsx — Agentes dinámicos desde la API, no hardcodeados
-import { Shield, TrendingUp, Warehouse, BarChart3, ArrowUpRight, Zap, Target, Users, Menu, Bot, Loader2 } from 'lucide-react';
-import { motion } from 'motion/react';
+// src/components/dashboard/Dashboard.jsx
 import { useState, useEffect } from 'react';
+import { Warehouse, TrendingUp, BarChart3, ArrowUpRight,
+         Zap, Users, Menu, Bot, Loader2, MessageSquare, Cpu, Activity } from 'lucide-react';
+import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 
-// Mapeo de iconos por templateId — el mismo que usa Sidebar
-const iconMap = {
-  bodega:    Warehouse,
-  ventas:    TrendingUp,
-  analitica: BarChart3,
-  default:   Bot,
+const iconMap   = { bodega: Warehouse, ventas: TrendingUp, analitica: BarChart3, default: Bot };
+const colorMap  = {
+  bodega:    { bg: 'bg-amber-500/10',   text: 'text-amber-500',   border: 'border-amber-500/20'   },
+  ventas:    { bg: 'bg-blue-500/10',    text: 'text-blue-500',    border: 'border-blue-500/20'    },
+  analitica: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20' },
+  default:   { bg: 'bg-slate-500/10',   text: 'text-slate-400',   border: 'border-slate-700'      },
 };
 
-const colorMap = {
-  bodega:    { bg: 'bg-amber-500/10',  text: 'text-amber-500'  },
-  ventas:    { bg: 'bg-blue-500/10',   text: 'text-blue-500'   },
-  analitica: { bg: 'bg-emerald-500/10', text: 'text-emerald-500' },
-  default:   { bg: 'bg-slate-500/10',  text: 'text-slate-400'  },
-};
+const fmt = (n) => n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n ?? 0);
 
-const AgentCard = ({ agent, onNavigate }) => {
-  const Icon   = iconMap[agent.templateId]  || iconMap.default;
-  const colors = colorMap[agent.templateId] || colorMap.default;
+const StatCard = ({ label, value, icon: Icon, color, delay = 0 }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+    className="bg-slate-900/50 border border-slate-800 p-4 rounded-sm flex items-center gap-4"
+  >
+    <div className={cn('w-10 h-10 rounded-sm border flex items-center justify-center flex-shrink-0', color.bg, color.border)}>
+      <Icon size={16} className={color.text} />
+    </div>
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest truncate">{label}</p>
+      <p className="text-xl font-mono font-bold text-slate-200">{value}</p>
+    </div>
+  </motion.div>
+);
 
+const AgentCard = ({ stat, onNavigate, delay = 0 }) => {
+  const Icon   = iconMap[stat.agent_id]  || iconMap.default;
+  const colors = colorMap[stat.agent_id] || colorMap.default;
   return (
     <motion.div
-      whileHover={{ y: -4 }}
-      onClick={() => onNavigate(agent.templateId)}
-      className="bg-slate-900/50 backdrop-blur-md border border-slate-800 p-5 relative overflow-hidden group cursor-pointer rounded-sm"
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+      whileHover={{ y: -3 }}
+      onClick={() => onNavigate(stat.agent_id)}
+      className="bg-slate-900/50 border border-slate-800 p-5 rounded-sm cursor-pointer group relative overflow-hidden"
     >
-      <div className="absolute top-0 right-0 w-24 h-24 bg-blue-600/5 -rotate-45 translate-x-12 -translate-y-12 group-hover:bg-blue-600/10 transition-colors" />
-
-      <div className="flex items-start justify-between mb-6">
-        <div className={cn('w-10 h-10 flex items-center justify-center rounded-sm', colors.bg, colors.text)}>
-          <Icon size={20} />
+      <div className="absolute top-0 right-0 w-20 h-20 bg-blue-600/5 -rotate-45 translate-x-10 -translate-y-10 group-hover:bg-blue-600/10 transition-colors" />
+      <div className="flex items-start justify-between mb-5">
+        <div className={cn('w-10 h-10 rounded-sm border flex items-center justify-center', colors.bg, colors.border)}>
+          <Icon size={18} className={colors.text} />
         </div>
-        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-950 border border-slate-800 rounded-sm z-10">
-          <div className="w-1.5 h-1.5 rounded-full animate-pulse bg-emerald-500" />
-          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">online</span>
-        </div>
+        <ArrowUpRight size={15} className="text-slate-600 group-hover:text-slate-300 transition-colors" />
       </div>
-
-      <h3 className="text-sm font-bold tracking-tight text-slate-100 mb-1 relative z-10">
-        {agent.name}
-      </h3>
-      <p className="text-xs text-slate-400 leading-relaxed mb-6 h-8 line-clamp-2 relative z-10">
-        {agent.description || 'Agente operativo conectado al ERP.'}
-      </p>
-
-      <div className="flex items-center justify-between pt-4 border-t border-slate-800 relative z-10">
-        <div>
-          <div className="text-[9px] uppercase font-bold text-slate-500 tracking-widest">Módulo</div>
-          <div className="text-sm font-mono font-bold text-slate-200 uppercase">{agent.templateId}</div>
-        </div>
-        <button className="p-2 text-slate-500 hover:text-white transition-colors">
-          <ArrowUpRight size={18} />
-        </button>
+      <p className="text-sm font-bold text-slate-100 mb-4">{stat.agent_name}</p>
+      <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-800">
+        {[
+          { label: 'Sesiones',  value: stat.total_sesiones  },
+          { label: 'Preguntas', value: stat.total_preguntas },
+          { label: 'Tokens',    value: fmt(stat.total_tokens) },
+        ].map(({ label, value }) => (
+          <div key={label}>
+            <p className="text-[9px] uppercase text-slate-500 tracking-widest mb-0.5">{label}</p>
+            <p className="text-sm font-mono font-bold text-slate-300">{value}</p>
+          </div>
+        ))}
       </div>
     </motion.div>
   );
 };
 
 export const Dashboard = ({ onMenuClick, onNavigate }) => {
-  const [agents, setAgents]     = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [stats,   setStats]   = useState([]);
+  const [agents,  setAgents]  = useState([]);
+  const [user,    setUser]    = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   useEffect(() => {
-    const fetchAgents = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const res   = await fetch(`${API_URL}/api/agents/my-agents`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) setAgents(data.agents);
-        }
-      } catch (err) {
-        console.error('Error cargando agentes en dashboard:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAgents();
+    const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+    Promise.all([
+      fetch(`${API_URL}/api/sessions/stats`,   { headers }).then(r => r.json()),
+      fetch(`${API_URL}/api/agents/my-agents`, { headers }).then(r => r.json()),
+      fetch(`${API_URL}/api/users/me`,          { headers }).then(r => r.json()),
+    ]).then(([s, a, u]) => {
+      if (s.success) setStats(s.stats);
+      if (a.success) setAgents(a.agents);
+      if (u.success) setUser(u.user);
+    }).catch(console.error).finally(() => setLoading(false));
   }, []);
+
+  const totalSesiones  = stats.reduce((s, a) => s + a.total_sesiones,  0);
+  const totalPreguntas = stats.reduce((s, a) => s + a.total_preguntas, 0);
+  const totalTokens    = stats.reduce((s, a) => s + a.total_tokens,    0);
 
   return (
     <div className="flex-1 overflow-y-auto bg-slate-950 min-h-screen">
-      {/* Mobile Header */}
       <header className="h-16 px-4 border-b border-slate-800/50 flex items-center lg:hidden bg-slate-950/80 backdrop-blur-md sticky top-0 z-10">
         <button onClick={onMenuClick} className="p-2 -ml-2 text-slate-400 hover:text-white">
           <Menu size={20} />
@@ -100,58 +101,52 @@ export const Dashboard = ({ onMenuClick, onNavigate }) => {
       </header>
 
       <div className="max-w-6xl mx-auto p-4 md:p-8">
-        <header className="mb-8 md:mb-10">
+        <div className="mb-8">
           <div className="flex items-center gap-2 text-blue-500 mb-2">
-            <Zap size={14} className="fill-current" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em]">Operational Readiness Level: 4</span>
+            <Zap size={13} className="fill-current" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em]">
+              {loading ? 'Cargando...' : `${agents.length} agente${agents.length !== 1 ? 's' : ''} activo${agents.length !== 1 ? 's' : ''}`}
+            </span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-2">Command Overview</h1>
-          <p className="text-slate-400 max-w-2xl text-xs md:text-sm leading-relaxed">
-            Entorno de orquestación IA sincronizado con los endpoints ERP de tu empresa.
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-1">
+            {user ? `Bienvenido, ${user.username}` : 'Command Overview'}
+          </h1>
+          <p className="text-slate-500 text-xs">
+            {user?.role === 'ADMIN' ? 'Administrador · ' : ''}
+            {new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
-        </header>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8 md:mb-10">
-          {[
-            { label: 'Agentes Activos', val: isLoading ? '—' : agents.length.toString(), icon: Users,  color: 'text-blue-500'   },
-            { label: 'Success Rate',    val: '99.98%',                                   icon: Target, color: 'text-emerald-500' },
-            { label: 'Resources',       val: '0.4Tf',                                    icon: Zap,    color: 'text-amber-500'  },
-            { label: 'Accuracy',        val: '0.94',                                     icon: Shield, color: 'text-sky-500'    },
-          ].map((stat, i) => (
-            <div key={i} className="bg-slate-900/50 backdrop-blur-md border border-slate-800 p-3 md:p-4 flex items-center gap-3 md:gap-4 rounded-sm">
-              <div className={cn('w-8 h-8 md:w-10 md:h-10 rounded-sm bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0', stat.color)}>
-                <stat.icon size={16} />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[9px] md:text-[10px] uppercase font-bold text-slate-500 tracking-widest truncate">{stat.label}</div>
-                <div className="text-sm md:text-xl font-mono font-bold text-slate-200">{stat.val}</div>
-              </div>
-            </div>
-          ))}
         </div>
 
-        {/* Agent Grid — dinámico */}
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xs uppercase font-bold tracking-[0.2em] text-slate-500">Tus Agentes Activos</h2>
+        {loading ? (
+          <div className="flex items-center gap-3 text-slate-500 py-20 justify-center">
+            <Loader2 size={16} className="animate-spin" />
+            <span className="text-xs font-mono">Cargando métricas...</span>
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+              <StatCard label="Agentes activos"  value={agents.length}    icon={Activity}      color={colorMap.ventas}    delay={0}    />
+              <StatCard label="Sesiones"          value={totalSesiones}    icon={Users}         color={colorMap.analitica} delay={0.05} />
+              <StatCard label="Preguntas"         value={totalPreguntas}   icon={MessageSquare} color={colorMap.bodega}    delay={0.1}  />
+              <StatCard label="Tokens usados"     value={fmt(totalTokens)} icon={Cpu}           color={colorMap.default}   delay={0.15} />
+            </div>
 
-          {isLoading ? (
-            <div className="flex items-center gap-3 text-slate-500 text-sm">
-              <Loader2 size={16} className="animate-spin" />
-              Cargando módulos...
+            <div>
+              <h2 className="text-[10px] uppercase font-bold tracking-[0.2em] text-slate-500 mb-5">Tus agentes</h2>
+              {stats.length === 0 ? (
+                <div className="text-slate-600 text-sm text-center py-12 border border-slate-800 rounded-sm">
+                  Sin actividad registrada. Inicia una conversación con algún agente.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                  {stats.map((stat, i) => (
+                    <AgentCard key={stat.agent_id} stat={stat} onNavigate={onNavigate} delay={0.1 + i * 0.05} />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : agents.length === 0 ? (
-            <div className="text-slate-500 text-sm">Sin agentes activos para esta empresa.</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {agents.map(agent => (
-                <AgentCard key={agent.instanceId} agent={agent} onNavigate={onNavigate} />
-              ))}
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
