@@ -4,28 +4,69 @@ import { ChevronDown, ChevronUp, Wand2, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const ROLES_PRIMARIO = [
-  { value: '',                label: 'Ignorar este campo'                    },
-  { value: 'id',              label: 'ID único del registro'                 },
-  { value: 'nombre',          label: 'Nombre o descripción'                  },
-  { value: 'precio',          label: 'Precio o ingreso'                      },
-  { value: 'stock',           label: 'Stock o cantidad'                      },
-  { value: 'sku',             label: 'SKU o código interno'                  },
-  { value: 'categoria',       label: 'Categoría o tipo de servicio'          },
-  { value: 'tecnico',         label: 'Técnico, responsable o repartidor'     },
-  { value: 'comuna',          label: 'Comuna, zona o ciudad'                 },
-  { value: 'fecha',           label: 'Fecha principal (creación)'            },
-  { value: 'costo',           label: 'Costo o gasto'                         },
-  { value: 'numero',          label: 'Número de orden o folio'               },
-  { value: 'estado',          label: 'Estado de la orden'                    },
-  { value: 'prioridad',       label: 'Prioridad'                             },
-  { value: 'direccion',       label: 'Dirección o ubicación'                 },
-  { value: 'cliente_id',      label: 'ID del cliente relacionado'            },
-  { value: 'cliente_nombre',  label: 'Nombre del cliente'                    },
-  { value: 'productos',       label: 'Productos o materiales de la orden'    },
-  { value: 'fecha_compromiso',label: 'Fecha compromiso o entrega'            },
-  { value: 'fecha_cierre',    label: 'Fecha de cierre o finalización'        },
-  { value: 'notas',           label: 'Notas u observaciones'                 },
+  { group: null, value: '',                label: 'Ignorar este campo'                       },
+  { group: 'Universal',
+    value: 'id',              label: 'ID — identificador único'                   },
+  { group: 'Universal',
+    value: 'nombre',          label: 'Nombre / descripción del artículo o ítem'   },
+  { group: 'Universal',
+    value: 'fecha',           label: 'Fecha de creación o registro'               },
+  { group: 'Universal',
+    value: 'notas',           label: 'Notas u observaciones'                      },
+  { group: 'Inventario / Bodega',
+    value: 'precio',          label: 'Precio de venta o ingreso'                  },
+  { group: 'Inventario / Bodega',
+    value: 'costo',           label: 'Costo o gasto'                              },
+  { group: 'Inventario / Bodega',
+    value: 'stock',           label: 'Stock disponible o cantidad'                },
+  { group: 'Inventario / Bodega',
+    value: 'sku',             label: 'SKU / código interno'                       },
+  { group: 'Inventario / Bodega',
+    value: 'categoria',       label: 'Categoría, tipo o familia'                  },
+  { group: 'Geografía / Personas',
+    value: 'tecnico',         label: 'Técnico / responsable / repartidor'         },
+  { group: 'Geografía / Personas',
+    value: 'comuna',          label: 'Comuna / zona / ciudad'                     },
+  { group: 'Geografía / Personas',
+    value: 'cliente_id',      label: 'ID del cliente asociado'                    },
+  { group: 'Geografía / Personas',
+    value: 'cliente_nombre',  label: 'Nombre del cliente asociado'                },
+  { group: 'Geografía / Personas',
+    value: 'direccion',       label: 'Dirección o ubicación'                      },
+  { group: 'Órdenes / Logística',
+    value: 'numero',          label: 'Número de orden / folio'                    },
+  { group: 'Órdenes / Logística',
+    value: 'estado',          label: 'Estado de la orden'                         },
+  { group: 'Órdenes / Logística',
+    value: 'prioridad',       label: 'Prioridad de la orden'                      },
+  { group: 'Órdenes / Logística',
+    value: 'productos',       label: 'Productos o materiales incluidos'           },
+  { group: 'Órdenes / Logística',
+    value: 'fecha_compromiso',label: 'Fecha comprometida / entrega'               },
+  { group: 'Órdenes / Logística',
+    value: 'fecha_cierre',    label: 'Fecha de cierre / finalización'             },
 ];
+
+// Renderiza el <select> con <optgroup> para separación visual en el navegador
+const RolesSelect = ({ value, onChange, roles, className }) => {
+  const grupos = {};
+  const sinGrupo = [];
+  for (const r of roles) {
+    if (!r.group) { sinGrupo.push(r); continue; }
+    if (!grupos[r.group]) grupos[r.group] = [];
+    grupos[r.group].push(r);
+  }
+  return (
+    <select value={value} onChange={onChange} className={className}>
+      {sinGrupo.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+      {Object.entries(grupos).map(([grupo, items]) => (
+        <optgroup key={grupo} label={grupo}>
+          {items.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+        </optgroup>
+      ))}
+    </select>
+  );
+};
 
 const ROLES_SECUNDARIO = [
   { value: '',            label: 'Ignorar este campo'                                },
@@ -66,13 +107,12 @@ const FilaMapeo = ({ campo, rol, roles, onChange, onRemove, removable }) => (
       {campo}
     </div>
     <span className="text-slate-600 text-center text-xs">→</span>
-    <select
+    <RolesSelect
       value={rol}
       onChange={e => onChange(campo, e.target.value)}
+      roles={roles}
       className="bg-slate-900 border border-slate-800 px-3 py-2 text-xs text-white focus:border-blue-600 outline-none rounded-sm w-full"
-    >
-      {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-    </select>
+    />
     {removable
       ? <button type="button" onClick={() => onRemove(campo)} className="text-slate-600 hover:text-red-500 transition-colors p-1" aria-label={`Eliminar ${campo}`}><X size={13} /></button>
       : <span />
