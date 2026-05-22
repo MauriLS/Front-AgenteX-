@@ -4,17 +4,27 @@ import { ChevronDown, ChevronUp, Wand2, Plus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const ROLES_PRIMARIO = [
-  { value: '',           label: 'Ignorar este campo'         },
-  { value: 'id',         label: 'ID único del registro'      },
-  { value: 'nombre',     label: 'Nombre o descripción'       },
-  { value: 'precio',     label: 'Precio o ingreso'           },
-  { value: 'stock',      label: 'Stock o cantidad'           },
-  { value: 'sku',        label: 'SKU o código interno'       },
-  { value: 'categoria',  label: 'Categoría o tipo'           },
-  { value: 'tecnico',    label: 'Técnico o responsable'      },
-  { value: 'comuna',     label: 'Comuna, zona o ciudad'      },
-  { value: 'fecha',      label: 'Fecha'                      },
-  { value: 'costo',      label: 'Costo o gasto'              },
+  { value: '',                label: 'Ignorar este campo'                    },
+  { value: 'id',              label: 'ID único del registro'                 },
+  { value: 'nombre',          label: 'Nombre o descripción'                  },
+  { value: 'precio',          label: 'Precio o ingreso'                      },
+  { value: 'stock',           label: 'Stock o cantidad'                      },
+  { value: 'sku',             label: 'SKU o código interno'                  },
+  { value: 'categoria',       label: 'Categoría o tipo de servicio'          },
+  { value: 'tecnico',         label: 'Técnico, responsable o repartidor'     },
+  { value: 'comuna',          label: 'Comuna, zona o ciudad'                 },
+  { value: 'fecha',           label: 'Fecha principal (creación)'            },
+  { value: 'costo',           label: 'Costo o gasto'                         },
+  { value: 'numero',          label: 'Número de orden o folio'               },
+  { value: 'estado',          label: 'Estado de la orden'                    },
+  { value: 'prioridad',       label: 'Prioridad'                             },
+  { value: 'direccion',       label: 'Dirección o ubicación'                 },
+  { value: 'cliente_id',      label: 'ID del cliente relacionado'            },
+  { value: 'cliente_nombre',  label: 'Nombre del cliente'                    },
+  { value: 'productos',       label: 'Productos o materiales de la orden'    },
+  { value: 'fecha_compromiso',label: 'Fecha compromiso o entrega'            },
+  { value: 'fecha_cierre',    label: 'Fecha de cierre o finalización'        },
+  { value: 'notas',           label: 'Notas u observaciones'                 },
 ];
 
 const ROLES_SECUNDARIO = [
@@ -32,9 +42,9 @@ function extraerClaves(jsonStr) {
   } catch { return null; }
 }
 
-function construirMapping(filasPrimario, filasSecundario, urlSecundario) {
+function construirMapping(filasPrimario, filasSecundario, urlSecundario, erpToken) {
   const mapping = {};
-  const fp = Array.isArray(filasPrimario)  ? filasPrimario  : [];
+  const fp = Array.isArray(filasPrimario)   ? filasPrimario  : [];
   const fs = Array.isArray(filasSecundario) ? filasSecundario : [];
   for (const f of fp) {
     if (f.rol && f.campo) mapping[f.rol] = f.campo;
@@ -46,6 +56,7 @@ function construirMapping(filasPrimario, filasSecundario, urlSecundario) {
       if (f.rol === 'stock_real' && f.campo) mapping.stock_real_key = f.campo;
     }
   }
+  if (erpToken?.trim()) mapping.erp_token = erpToken.trim();
   return Object.keys(mapping).length > 0 ? mapping : null;
 }
 
@@ -145,6 +156,11 @@ export const ERPMappingSection = ({ onChange }) => {
   const [errorSecundario,   setErrorSecundario]   = useState('');
   const [filasSecundario,   setFilasSecundario]   = useState([]);
 
+  const [erpToken,          setErpToken]          = useState('');
+
+  const erpTokenRef = useRef('');
+  erpTokenRef.current = erpToken;
+
   // useRef para leer siempre el estado más reciente dentro de los callbacks
   // sin depender de closures que pueden quedar obsoletos entre renders.
   const filasPrimarioRef   = useRef(filasPrimario);
@@ -162,7 +178,8 @@ export const ERPMappingSection = ({ onChange }) => {
     const mapping = construirMapping(
       Array.isArray(fp)  ? fp  : [],
       Array.isArray(fs)  ? fs  : [],
-      url || ''
+      url || '',
+      erpTokenRef.current
     );
     onChangeRef.current(mapping);
   }, []); // Sin dependencias — lee todo desde refs
@@ -182,7 +199,7 @@ export const ERPMappingSection = ({ onChange }) => {
     notificar(filasPrimarioRef.current, filasSecundarioRef.current, u);
   }, [notificar]);
 
-  const mappingActual      = construirMapping(filasPrimario, filasSecundario, urlSecundario);
+  const mappingActual      = construirMapping(filasPrimario, filasSecundario, urlSecundario, erpToken);
   const camposConfigurados = mappingActual ? Object.keys(mappingActual).length : 0;
 
   return (
@@ -276,6 +293,27 @@ export const ERPMappingSection = ({ onChange }) => {
                     />
                   </div>
                 )}
+              </div>
+
+              {/* Token de autenticación — opcional */}
+              <div className="border-t border-slate-800 pt-5">
+                <label className="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1.5 block">
+                  Token de autenticación del ERP
+                  <span className="text-slate-600 font-normal normal-case ml-1">(opcional)</span>
+                </label>
+                <input
+                  type="password"
+                  value={erpToken}
+                  onChange={e => {
+                    setErpToken(e.target.value);
+                    onChangeRef.current(construirMapping(filasPrimario, filasSecundario, urlSecundario, e.target.value));
+                  }}
+                  placeholder="Bearer eyJhbGci... o ApiKey abc123"
+                  className="w-full bg-slate-950 border border-slate-800 px-3 py-2 text-xs text-white focus:border-blue-600 outline-none placeholder:text-slate-700 font-mono rounded-sm"
+                />
+                <p className="text-[10px] text-slate-600 mt-1">
+                  Si el ERP requiere autenticación, ingresa el valor completo del header Authorization.
+                </p>
               </div>
 
               {mappingActual && (

@@ -105,7 +105,7 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
           )}
         </nav>
 
-        {/* Sección ADMIN */}
+        {/* Sección ADMIN — Gestión de agentes propia */}
         {user?.role === 'ADMIN' && (
           <>
             {!collapsed && (
@@ -113,13 +113,6 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
                 Administración
               </div>
             )}
-            <NavItem
-              icon={Shield}
-              label="Aprovisionar Empresa"
-              active={activeTab === 'provisioning'}
-              onClick={() => navigate('provisioning')}
-              collapsed={collapsed}
-            />
             <NavItem
               icon={Bot}
               label="Gestión de Agentes"
@@ -130,7 +123,7 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
           </>
         )}
 
-        {/* SUPER_ADMIN */}
+        {/* Sección SUPER_ADMIN — aprovisionar + empresas */}
         {user?.role === 'SUPER_ADMIN' && (
           <>
             {!collapsed && (
@@ -138,6 +131,13 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
                 Super Admin
               </div>
             )}
+            <NavItem
+              icon={Shield}
+              label="Aprovisionar Empresa"
+              active={activeTab === 'provisioning'}
+              onClick={() => navigate('provisioning')}
+              collapsed={collapsed}
+            />
             <NavItem
               icon={Globe}
               label="Empresas"
