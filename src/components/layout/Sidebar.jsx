@@ -105,15 +105,29 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
           )}
         </nav>
 
-        {/* Provisioning — solo ADMIN */}
+        {/* Sección ADMIN */}
         {user?.role === 'ADMIN' && (
-          <NavItem
-            icon={Shield}
-            label="Aprovisionar Empresa"
-            active={activeTab === 'provisioning'}
-            onClick={() => navigate('provisioning')}
-            collapsed={collapsed}
-          />
+          <>
+            {!collapsed && (
+              <div className="px-3 pt-4 pb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Administración
+              </div>
+            )}
+            <NavItem
+              icon={Shield}
+              label="Aprovisionar Empresa"
+              active={activeTab === 'provisioning'}
+              onClick={() => navigate('provisioning')}
+              collapsed={collapsed}
+            />
+            <NavItem
+              icon={Bot}
+              label="Gestión de Agentes"
+              active={activeTab === 'agents'}
+              onClick={() => navigate('agents')}
+              collapsed={collapsed}
+            />
+          </>
         )}
 
         {/* Footer */}
