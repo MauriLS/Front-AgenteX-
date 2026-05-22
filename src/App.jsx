@@ -8,7 +8,8 @@ import { Sidebar }         from './components/layout/Sidebar';
 import { Dashboard }       from './components/dashboard/Dashboard';
 import { ChatInterface }   from './components/chat/ChatInterface';
 import { ProfileSettings } from './components/settings/ProfileSettings';
-import { AgentsSettings }   from './components/settings/AgentsSettings';
+import { AgentsSettings }    from './components/settings/AgentsSettings';
+import { CompanySettings }   from './components/settings/CompanySettings';
 import { CompaniesAdmin }   from './components/admin/CompaniesAdmin';
 import { SessionHistory }  from './components/history/SessionHistory';
 import { SessionDetail }   from './components/history/SessionDetail';
@@ -36,6 +37,8 @@ const CoreSystem = () => {
         return <ProfileSettings onMenuClick={toggleMobileMenu} />;
       case 'agents':
         return <AgentsSettings onMenuClick={toggleMobileMenu} />;
+      case 'company':
+        return <CompanySettings onMenuClick={toggleMobileMenu} />;
       case 'companies':
         return <CompaniesAdmin onMenuClick={toggleMobileMenu} />;
       case 'history':

@@ -1,7 +1,7 @@
 // src/components/layout/Sidebar.jsx
 import { useState, useEffect } from 'react';
 import { LayoutDashboard, Warehouse, TrendingUp, BarChart3, Settings,
-         LogOut, Shield, ChevronRight, Bot, History, Package, Globe } from 'lucide-react';
+         LogOut, Shield, ChevronRight, Bot, History, Package, Globe, Building2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const iconMap = {
@@ -118,6 +118,13 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
               label="Gestión de Agentes"
               active={activeTab === 'agents'}
               onClick={() => navigate('agents')}
+              collapsed={collapsed}
+            />
+            <NavItem
+              icon={Building2}
+              label="Mi Empresa"
+              active={activeTab === 'company'}
+              onClick={() => navigate('company')}
               collapsed={collapsed}
             />
           </>
