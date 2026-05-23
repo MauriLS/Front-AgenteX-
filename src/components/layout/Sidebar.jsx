@@ -1,8 +1,9 @@
 // src/components/layout/Sidebar.jsx
 import { useState, useEffect } from 'react';
 import { LayoutDashboard, Warehouse, TrendingUp, BarChart3, Settings,
-         LogOut, Shield, ChevronRight, Bot, History, Package, Globe, Building2 } from 'lucide-react';
+         LogOut, Shield, ChevronRight, Bot, History, Package, Globe, Building2, Users } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 const iconMap = {
   bodega:    Warehouse,
@@ -39,9 +40,7 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
   const user    = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
-    fetch(`${API_URL}/api/agents/my-agents`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
+    apiFetch('/api/agents/my-agents')
       .then(r => r.json())
       .then(d => { if (d.success) setDynamicAgents(d.agents); })
       .catch(console.error)
@@ -125,6 +124,13 @@ export const Sidebar = ({ activeTab, onNavigate, isOpen, onClose }) => {
               label="Mi Empresa"
               active={activeTab === 'company'}
               onClick={() => navigate('company')}
+              collapsed={collapsed}
+            />
+            <NavItem
+              icon={Users}
+              label="Usuarios"
+              active={activeTab === 'users'}
+              onClick={() => navigate('users')}
               collapsed={collapsed}
             />
           </>
