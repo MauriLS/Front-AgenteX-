@@ -4,6 +4,7 @@ import { Warehouse, TrendingUp, BarChart3, ArrowUpRight,
          Zap, Users, Menu, Bot, Loader2, MessageSquare, Cpu, Activity } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 const iconMap   = { bodega: Warehouse, ventas: TrendingUp, analitica: BarChart3, default: Bot };
 const colorMap  = {
@@ -75,9 +76,9 @@ export const Dashboard = ({ onMenuClick, onNavigate }) => {
   useEffect(() => {
     const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
     Promise.all([
-      fetch(`${API_URL}/api/sessions/stats`,   { headers }).then(r => r.json()),
-      fetch(`${API_URL}/api/agents/my-agents`, { headers }).then(r => r.json()),
-      fetch(`${API_URL}/api/users/me`,          { headers }).then(r => r.json()),
+      apiFetch('/api/sessions/stats').then(r => r.json()),
+      apiFetch('/api/agents/my-agents').then(r => r.json()),
+      apiFetch('/api/users/me').then(r => r.json()),
     ]).then(([s, a, u]) => {
       if (s.success) setStats(s.stats);
       if (a.success) setAgents(a.agents);

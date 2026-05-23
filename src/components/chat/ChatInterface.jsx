@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'motion/react'; 
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 const mensajeBienvenida = () => ({
     id:        Date.now().toString(),
@@ -151,6 +152,12 @@ export const ChatInterface = ({ agentId, onMenuClick }) => {
                 body: JSON.stringify(payload)
             });
 
+            if (response.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+                return;
+            }
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
