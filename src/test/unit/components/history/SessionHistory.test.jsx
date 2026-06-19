@@ -72,8 +72,8 @@ describe('SessionHistory', () => {
     render(<SessionHistory onMenuClick={vi.fn()} onSelectSession={onSelectSession} />);
     await waitFor(() => expect(screen.getByText(/^Hoy/)).toBeInTheDocument());
     expect(screen.getByText(/^Ayer/)).toBeInTheDocument();
-    // fecha vieja usa toLocaleDateString
-    expect(screen.getByText(/5/)).toBeInTheDocument();
+    // La fecha vieja se formatea con toLocaleDateString (ni "Hoy" ni "Ayer")
+    expect(screen.getByText(/analitica · sesión #3/)).toBeInTheDocument();
   });
 
   it('click en sesión llama onSelectSession con su id', async () => {
