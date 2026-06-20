@@ -4,6 +4,7 @@ import { Building2, Save, Loader2, CheckCircle, Menu, RefreshCw } from 'lucide-r
 import { motion } from 'motion/react';
 import { ERPMappingSection } from '../provisioning/ERPMappingSection';
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 export const CompanySettings = ({ onMenuClick }) => {
   const [company,  setCompany]  = useState(null);
@@ -17,14 +18,8 @@ export const CompanySettings = ({ onMenuClick }) => {
   const [businessContext, setBusinessContext] = useState('');
   const [erpMapping,      setErpMapping]      = useState(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const headers = {
-    Authorization:  `Bearer ${localStorage.getItem('token')}`,
-    'Content-Type': 'application/json',
-  };
-
   useEffect(() => {
-    fetch(`${API_URL}/api/company`, { headers })
+    apiFetch('/api/company')
       .then(r => r.json())
       .then(d => {
         if (d.success) {
@@ -54,8 +49,8 @@ export const CompanySettings = ({ onMenuClick }) => {
 
     setSaving(true);
     try {
-      const res  = await fetch(`${API_URL}/api/company`, {
-        method: 'PATCH', headers, body: JSON.stringify(body),
+      const res  = await apiFetch('/api/company', {
+        method: 'PATCH', body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al guardar.');

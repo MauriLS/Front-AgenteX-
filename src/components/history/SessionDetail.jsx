@@ -5,18 +5,15 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm    from 'remark-gfm';
 import { motion }   from 'motion/react';
 import { cn }       from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 export const SessionDetail = ({ sessionId, onBack, onMenuClick }) => {
   const [messages, setMessages] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const scrollRef = useRef(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
   useEffect(() => {
-    fetch(`${API_URL}/api/sessions/${sessionId}/messages`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    })
+    apiFetch(`/api/sessions/${sessionId}/messages`)
       .then(r => r.json())
       .then(d => { if (d.success) setMessages(d.messages); })
       .catch(console.error)

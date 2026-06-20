@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { User, Mail, Lock, Save, Loader2, CheckCircle, Menu } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 const Field = ({ label, icon: Icon, error, ...props }) => (
   <div>
@@ -28,11 +29,8 @@ export const ProfileSettings = ({ onMenuClick }) => {
   const [success, setSuccess] = useState(false);
   const [error,   setError]   = useState('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const headers = { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' };
-
   useEffect(() => {
-    fetch(`${API_URL}/api/users/me`, { headers })
+    apiFetch('/api/users/me')
       .then(r => r.json())
       .then(data => {
         if (data.success) setForm(f => ({ ...f, username: data.user.username, email: data.user.email }));
@@ -58,7 +56,7 @@ export const ProfileSettings = ({ onMenuClick }) => {
 
     setSaving(true);
     try {
-      const res  = await fetch(`${API_URL}/api/users/me`, { method: 'PUT', headers, body: JSON.stringify(body) });
+      const res  = await apiFetch('/api/users/me', { method: 'PUT', body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al guardar.');
       setSuccess(true);

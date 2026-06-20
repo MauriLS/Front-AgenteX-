@@ -4,6 +4,7 @@ import { MessageSquare, Trash2, ChevronRight, Loader2, Menu,
          Warehouse, TrendingUp, BarChart3, Bot, Package, LineChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 const iconMap = {
   bodega:    Warehouse,
@@ -38,11 +39,8 @@ export const SessionHistory = ({ onMenuClick, onSelectSession }) => {
   const [loading,  setLoading]  = useState(true);
   const [deleting, setDeleting] = useState(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
-
   useEffect(() => {
-    fetch(`${API_URL}/api/sessions`, { headers })
+    apiFetch('/api/sessions')
       .then(r => r.json())
       .then(d => { if (d.success) setSessions(d.sessions); })
       .catch(console.error)
@@ -53,7 +51,7 @@ export const SessionHistory = ({ onMenuClick, onSelectSession }) => {
     e.stopPropagation();
     setDeleting(id);
     try {
-      const res = await fetch(`${API_URL}/api/sessions/${id}`, { method: 'DELETE', headers });
+      const res = await apiFetch(`/api/sessions/${id}`, { method: 'DELETE' });
       if (res.ok) setSessions(prev => prev.filter(s => s.id !== id));
     } catch (err) {
       console.error(err);

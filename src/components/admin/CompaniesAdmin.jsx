@@ -4,6 +4,7 @@ import { Building2, Trash2, ChevronDown, ChevronUp, Loader2,
          Menu, Save, X, AlertTriangle, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 const STATUS_COLORS = {
   ACTIVE:    { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20' },
@@ -235,11 +236,8 @@ export const CompaniesAdmin = ({ onMenuClick }) => {
   const [loading,   setLoading]   = useState(true);
   const [search,    setSearch]    = useState('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const headers = { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' };
-
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/companies`, { headers })
+    apiFetch('/api/admin/companies')
       .then(r => r.json())
       .then(d => { if (d.success) setCompanies(d.companies); })
       .catch(console.error)
@@ -247,8 +245,8 @@ export const CompaniesAdmin = ({ onMenuClick }) => {
   }, []);
 
   const handleUpdate = async (id, updates) => {
-    const res  = await fetch(`${API_URL}/api/admin/companies/${id}`, {
-      method: 'PUT', headers, body: JSON.stringify(updates),
+    const res  = await apiFetch(`/api/admin/companies/${id}`, {
+      method: 'PUT', body: JSON.stringify(updates),
     });
     const data = await res.json();
     if (data.success) {
@@ -257,7 +255,7 @@ export const CompaniesAdmin = ({ onMenuClick }) => {
   };
 
   const handleDelete = async (id) => {
-    const res = await fetch(`${API_URL}/api/admin/companies/${id}`, { method: 'DELETE', headers });
+    const res = await apiFetch(`/api/admin/companies/${id}`, { method: 'DELETE' });
     if (res.ok) setCompanies(prev => prev.filter(c => c.id !== id));
   };
 

@@ -4,6 +4,7 @@ import { Plus, Save, Power, Loader2, Menu, ChevronDown, ChevronUp,
          Warehouse, TrendingUp, BarChart3, Bot, Package, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
+import { apiFetch } from '../../lib/apiFetch';
 
 const iconMap  = { bodega: Warehouse, ventas: TrendingUp, analitica: BarChart3, logistica: Package, default: Bot };
 const colorMap = {
@@ -153,9 +154,6 @@ const NuevoAgenteModal = ({ templates, agentesActivos, onClose, onCreated }) => 
   const [saving,  setSaving]  = useState(false);
   const [error,   setError]   = useState('');
 
-  const API_URL  = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const headers  = { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' };
-
   // Filtrar templates que ya están activos
   const activosIds   = agentesActivos.map(a => a.agent_template_id);
   const disponibles  = templates.filter(t => !activosIds.includes(t.id));
@@ -168,7 +166,7 @@ const NuevoAgenteModal = ({ templates, agentesActivos, onClose, onCreated }) => 
 
     setSaving(true);
     try {
-      const res  = await fetch(`${API_URL}/api/agents`, { method: 'POST', headers, body: JSON.stringify(form) });
+      const res  = await apiFetch('/api/agents', { method: 'POST', body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al crear el agente.');
       onCreated(data.agent);
@@ -283,13 +281,10 @@ export const AgentsSettings = ({ onMenuClick }) => {
   const [loading,   setLoading]   = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  const headers = { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' };
-
   useEffect(() => {
     Promise.all([
-      fetch(`${API_URL}/api/agents`,           { headers }).then(r => r.json()),
-      fetch(`${API_URL}/api/agents/templates`, { headers }).then(r => r.json()),
+      apiFetch('/api/agents').then(r => r.json()),
+      apiFetch('/api/agents/templates').then(r => r.json()),
     ]).then(([agentsRes, templatesRes]) => {
       if (agentsRes.success)   setAgents(agentsRes.agents.filter(a => a.is_active));
       if (templatesRes.success) setTemplates(templatesRes.templates);
@@ -298,7 +293,7 @@ export const AgentsSettings = ({ onMenuClick }) => {
   }, []);
 
   const handleSave = async (id, updates) => {
-    const res  = await fetch(`${API_URL}/api/agents/${id}`, { method: 'PUT', headers, body: JSON.stringify(updates) });
+    const res  = await apiFetch(`/api/agents/${id}`, { method: 'PUT', body: JSON.stringify(updates) });
     const data = await res.json();
     if (data.success) {
       setAgents(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
@@ -306,13 +301,13 @@ export const AgentsSettings = ({ onMenuClick }) => {
   };
 
   const handleDeactivate = async (id) => {
-    const res = await fetch(`${API_URL}/api/agents/${id}`, { method: 'DELETE', headers });
+    const res = await apiFetch(`/api/agents/${id}`, { method: 'DELETE' });
     if (res.ok) setAgents(prev => prev.filter(a => a.id !== id));
   };
 
   const handleCreated = (newAgent) => {
     // Recargar agentes para obtener el join con agent_templates
-    fetch(`${API_URL}/api/agents`, { headers })
+    apiFetch('/api/agents')
       .then(r => r.json())
       .then(d => { if (d.success) setAgents(d.agents.filter(a => a.is_active)); });
   };

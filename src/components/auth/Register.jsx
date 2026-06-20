@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { ERPMappingSection } from '../provisioning/ERPMappingSection';
 import { Shield, Loader2, Plus, Trash2, Server, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { apiFetch } from '../../lib/apiFetch';
 
 // =============================================================================
 // TOOLTIPS DE AYUDA — explica cada campo técnico al admin
@@ -63,8 +64,6 @@ export const RegisterB2B = () => {
   const [showContext,  setShowContext]  = useState(false);
   const [status, setStatus] = useState({ loading: false, error: '', success: '' });
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:3000';
-
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleBaseChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -112,16 +111,11 @@ export const RegisterB2B = () => {
     };
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Token de administrador no encontrado.');
+      if (!localStorage.getItem('token')) throw new Error('Token de administrador no encontrado.');
 
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method:  'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+      const response = await apiFetch('/api/auth/register', {
+        method: 'POST',
+        body:    JSON.stringify(payload),
       });
 
       const data = await response.json();
