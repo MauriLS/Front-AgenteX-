@@ -56,7 +56,7 @@ export const ProfileSettings = ({ onMenuClick }) => {
 
     setSaving(true);
     try {
-      const res  = await apiFetch('/api/users/me', { method: 'PUT', body: JSON.stringify(body) });
+      const res  = await apiFetch('/api/users/me', { method: 'PATCH', body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al guardar.');
       setSuccess(true);
