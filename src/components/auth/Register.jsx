@@ -294,6 +294,7 @@ export const RegisterB2B = () => {
                         <option value="bodega">Bodega (Inventario)</option>
                         <option value="ventas">Ventas (Comercial)</option>
                         <option value="analitica">Analítica (Datos)</option>
+                        <option value="logistica">Logística (Despachos)</option>
                       </select>
 
                       <label className="text-xs text-slate-500 mb-1 block">
@@ -326,6 +327,8 @@ export const RegisterB2B = () => {
                             ? 'Eres el operario de bodega de [EMPRESA]. Tono crudo y transaccional. Solo reportas datos del ERP, nunca inventas...'
                             : agent.template_id === 'analitica'
                             ? 'Eres el analista de datos de [EMPRESA]. Presentas métricas con contexto. Usas tablas para comparaciones...'
+                            : agent.template_id === 'logistica'
+                            ? 'Eres el coordinador de logística de [EMPRESA]. Reportas estado de despachos, rutas y tiempos de entrega. Solo datos del ERP, nunca inventas...'
                             : 'Eres el agente comercial de [EMPRESA]. Tu objetivo es ayudar al equipo de ventas con contexto del cliente...'
                         }
                         className="w-full bg-slate-900 border border-slate-800 px-4 py-3 text-sm text-slate-300 focus:border-blue-600 outline-none min-h-[140px] resize-y placeholder:text-slate-700 font-mono"
