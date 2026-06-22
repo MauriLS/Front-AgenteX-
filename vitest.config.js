@@ -21,6 +21,9 @@ export default defineConfig({
         'vitest.config.js',
         'vite.config.js',
         'eslint.config.js',
+        'playwright.config.js',
+        'dist/**',
+        'scripts/**',
       ],
       thresholds: {
         branches: 90,

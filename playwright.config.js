@@ -9,6 +9,9 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
+    launchOptions: {
+      slowMo: process.env.SLOWMO ? Number(process.env.SLOWMO) : 0,
+    },
   },
   webServer: {
     command: 'npm run dev -- --port 5173 --strictPort',
